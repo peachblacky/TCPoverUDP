@@ -10,8 +10,16 @@ public class Server {
     private final static String ipAdress = "192.168.0.4";
     private Random senderACK = new Random(1488);
 
-    private void handshake(DatagramSocket socket, TCPOverUDP net, int curAck) throws Exception {
-        
+    private boolean handshake(DatagramSocket socket, TCPOverUDP net, int curAck) throws Exception {
+        Segment firstSYN = net.recieve(socket);
+        if(!firstSYN.isSYN) {
+            return false;
+        }
+        Segment answerSYNACK = new Segment(true, true, 1, 0, 0);
+        net.send(socket, ipAdress, PORT, answerSYNACK);
+
+        Segment secondACK = net.recieve(socket);
+        return secondACK.isSYN;
     }
 
     public static void main(String[] args) {

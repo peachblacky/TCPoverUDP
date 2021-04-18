@@ -14,10 +14,18 @@ public class Client {
     private final static String ipAdress = "192.168.0.4";
     private int clientSEQNUM;
 
-    private void handshake(DatagramSocket socket, TCPOverUDP net, int curAck) throws Exception {
+    private boolean handshake(DatagramSocket socket, TCPOverUDP net, int curAck) throws Exception {
         Segment firstSYN = new Segment(false, true, 0, 0, 0);
         net.send(socket, ipAdress, PORT, firstSYN);
 
+        Segment answerSYNACK = net.recieve(socket);
+        if(!answerSYNACK.isACK || !answerSYNACK.isSYN) {
+            return false;
+        }
+        Segment secondACK = new Segment(true, false, 1, 1, 0);
+        net.send(socket, ipAdress, PORT, secondACK);
+
+        return true;
     }
 
     public static void main(String[] args) throws Exception {
