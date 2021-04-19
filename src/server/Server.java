@@ -3,7 +3,6 @@ package server;
 import java.io.*;
 import java.net.DatagramSocket;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Random;
 
 public class Server extends Thread{
@@ -15,16 +14,19 @@ public class Server extends Thread{
     private final Random ACKrandomer = new Random(1488);
 
     private boolean handshake(DatagramSocket Socket, TCPOverUDP net) throws Exception {
-        Segment firstSYN = net.recieve(Socket);
+        Segment firstSYN = net.receive(Socket);
         if(!firstSYN.isSYN) {
             return false;
         }
         Segment answerSYNACK = new Segment(true, true, 1, 0, 0, null);
         net.send(Socket, ipAdress, OUTPUT_PORT, answerSYNACK);
 
-        Segment secondACK = net.recieve(Socket);
+        Segment secondACK = net.receive(Socket);
+        if(!secondACK.isACK) {
+            return false;
+        }
         System.out.println("Server finished handshaking");
-        return secondACK.isSYN;
+        return true;
     }
 
     private ArrayList<Segment> parseTextIntoSegments(int senderACK) throws IOException {
@@ -50,19 +52,34 @@ public class Server extends Thread{
         ArrayList<Segment> ackedSegments = new ArrayList<>();
         int lastACKNumber = 0;
         while(true) {
-            Segment curSeg = net.recieve(socket);
+            if(sentSegments.equals(ackedSegments)){
+                System.out.println("All segments successfully received");
+                return;
+            }
 
+            Segment curSeg = net.receive(socket);
             if(curSeg.isACK && !curSeg.isSYN) {
                 if(curSeg.ACKNumber > lastACKNumber) {
+                    for(var cur : sentSegments) {
+                        if (cur.SEQNumber < curSeg.ACKNumber) {
+//                            sentSegments.remove(cur);
+                            ackedSegments.add(cur);
+                        }
+                    }
+                }else {
                     for(Segment cur : sentSegments) {
                         if (cur.SEQNumber < curSeg.ACKNumber) {
+//                            sentSegments.remove(cur);
                             ackedSegments.add(cur);
+                        }else if(cur.SEQNumber < lastACKNumber) {
+                            net.send(socket, ipAdress, OUTPUT_PORT, cur);
                         }
                     }
                 }
             }
         }
     }
+
     @Override
     public void run(){
         try {
@@ -79,6 +96,7 @@ public class Server extends Thread{
 
             socket.setSoTimeout(TIMEOUT);
 
+            ackSegments(socket, net, sendSegments);
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -30,7 +30,7 @@ public class TCPOverUDP {
         System.out.println("Loss triggered, package has not being sent");
     }
 
-    public Segment recieve(DatagramSocket socket) throws Exception {
+    public Segment receive(DatagramSocket socket) throws Exception {
         byte[] receiveBuffer = new byte[1337];
         DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
         try {
