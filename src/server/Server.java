@@ -10,8 +10,8 @@ public class Server extends Thread{
     private final static int INPUT_PORT = 1488;
     private final static int OUTPUT_PORT = 1337;
     private final static int TIMEOUT = 30;
-    private final static String ipAdress = "localhost";
-    private final Random ACKrandomer = new Random();
+    private final static String ipAddress = "localhost";
+    private final Random ACKRandomizer = new Random();
 
     private boolean handshake(DatagramSocket Socket, TCPOverUDP net) throws Exception {
         Segment firstSYN = net.receive(Socket);
@@ -19,7 +19,7 @@ public class Server extends Thread{
             return false;
         }
         Segment answerSYNACK = new Segment(true, true, 1, 0, 0, null);
-        net.send(Socket, ipAdress, OUTPUT_PORT, answerSYNACK);
+        net.send(Socket, ipAddress, OUTPUT_PORT, answerSYNACK);
 
         Segment secondACK = net.receive(Socket);
         if(!secondACK.isACK) {
@@ -44,10 +44,10 @@ public class Server extends Thread{
 
     private void sendSegments(DatagramSocket socket, TCPOverUDP net, ArrayList<Segment> sendSegments, int senderACK) throws Exception {
         for(var seg : sendSegments) {
-            net.send(socket, ipAdress, OUTPUT_PORT, seg);
+            net.send(socket, ipAddress, OUTPUT_PORT, seg);
         }
         Segment finalSeg = new Segment(false, false, senderACK,0, 0, null);
-        net.send(socket, ipAdress, OUTPUT_PORT, finalSeg);
+        net.send(socket, ipAddress, OUTPUT_PORT, finalSeg);
     }
 
     private void ackSegments(DatagramSocket socket, TCPOverUDP net, ArrayList<Segment> sentSegments) throws Exception {
@@ -57,7 +57,7 @@ public class Server extends Thread{
             if(sentSegments.equals(ackedSegments)){
                 System.out.println("All segments successfully received");
                 Segment finSeg = new Segment(true, true, 0, 0, 0, null);
-                net.send(socket, ipAdress, OUTPUT_PORT, finSeg);
+                net.send(socket, ipAddress, OUTPUT_PORT, finSeg);
                 return;
             }
 
@@ -82,7 +82,7 @@ public class Server extends Thread{
                             }
                         }else if(cur.SEQNumber <= lastACKNumber) {
 //                            System.out.println("Sending segment " + cur.SEQNumber + " again");
-                            net.send(socket, ipAdress, OUTPUT_PORT, cur);
+                            net.send(socket, ipAddress, OUTPUT_PORT, cur);
                         }
                     }
                 }
@@ -94,7 +94,7 @@ public class Server extends Thread{
     public void run(){
         try {
             Random loser = new Random();
-            int senderACK = ACKrandomer.nextInt();
+            int senderACK = ACKRandomizer.nextInt();
             DatagramSocket socket = new DatagramSocket(INPUT_PORT);
             TCPOverUDP net = new TCPOverUDP(loser, LOSS);
             if(!handshake(socket, net)) {

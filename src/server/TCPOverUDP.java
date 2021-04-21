@@ -23,14 +23,9 @@ public class TCPOverUDP {
             objOS.flush();
             byte[] sendBuffer = byteOS.toByteArray();
             DatagramPacket dataPacket = new DatagramPacket(sendBuffer, sendBuffer.length, address, destPort);
-//            if(segment.SEQNumber > 0) {
-//                System.out.println("Sending package " + segment.SEQNumber);
-//            }
             socket.send(dataPacket);
             objOS.close();
-            return;
         }
-//        System.out.println("Loss triggered, package has not being sent");
     }
 
     public Segment receive(DatagramSocket socket) throws Exception {

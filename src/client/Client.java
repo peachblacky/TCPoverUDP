@@ -29,7 +29,6 @@ public class Client extends Thread{
     }
 
     private void receiveSegments(DatagramSocket socket, TCPOverUDP net, ArrayList<Segment> receivedSegments) throws Exception {
-//        int ackCounter = 0;
         int lastSeqNum = 0;
         int lastLength = 0;
         while(true) {
@@ -39,9 +38,6 @@ public class Client extends Thread{
                 return;
             }
             if(curSeg.SEQNumber > lastSeqNum + lastLength && lastSeqNum != 0) {
-//                System.out.println("Awaited seq was " + (lastSeqNum + lastLength) + " but the received is " + curSeg.SEQNumber);
-//                System.out.println("Some packets were lost during the sending! Sending the duplicated ACK");
-
                 Segment dupACK = new Segment(true, false, lastSeqNum + lastLength, curSeg.ACKNumber, 0, null);
                 net.send(socket, ipAdress, OUTPUT_PORT, dupACK);
             }else {
