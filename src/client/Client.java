@@ -7,29 +7,69 @@ import java.net.DatagramSocket;
 import java.util.ArrayList;
 import java.util.Random;
 
-public class Client {
-    private final static double LOSS = 0.8;
-    private final static int PORT = 8080;
-    private final static int TIMEOUT = 15;
-    private final static String ipAdress = "192.168.0.4";
-    private int clientSEQNUM;
+public class Client extends Thread{
+    private final static double LOSS = 1.0;
+    private final static int INPUT_PORT = 1337;
+    private final static int OUTPUT_PORT = 1488;
+    private final static String ipAdress = "localhost";
 
-    private void handshake(DatagramSocket socket, TCPOverUDP net, int curAck) throws Exception {
-        Segment firstSYN = new Segment(false, true, 0, 0, 0);
-        net.send(socket, ipAdress, PORT, firstSYN);
+    private boolean handshake(DatagramSocket Socket, TCPOverUDP net) throws Exception {
+        Segment firstSYN = new Segment(false, true, 0, 0, 0, null);
+        net.send(Socket, ipAdress, OUTPUT_PORT, firstSYN);
 
+        Segment answerSYNACK = net.receive(Socket);
+        if(!answerSYNACK.isACK || !answerSYNACK.isSYN) {
+            return false;
+        }
+        Segment secondACK = new Segment(true, false, 1, 1, 0, null);
+        net.send(Socket, ipAdress, OUTPUT_PORT, secondACK);
+
+        System.out.println("Client finished handshaking");
+        return true;
     }
 
-    public static void main(String[] args) throws Exception {
-        Random loser = new Random(0);
-        DatagramSocket socket = new DatagramSocket(PORT);
-        TCPOverUDP net = new TCPOverUDP(loser, LOSS);
+    private void receiveSegments(DatagramSocket socket, TCPOverUDP net, ArrayList<Segment> receivedSegments) throws Exception {
+        int lastSeqNum = 0;
+        int lastLength = 0;
+        while(true) {
+            Segment curSeg = net.receive(socket);
+            if(curSeg.isACK && curSeg.isSYN) {
+                System.out.println("Client received final segment");
+                return;
+            }
+            if(curSeg.SEQNumber > lastSeqNum + lastLength && lastSeqNum != 0) {
+                Segment dupACK = new Segment(true, false, lastSeqNum + lastLength, curSeg.ACKNumber, 0, null);
+                net.send(socket, ipAdress, OUTPUT_PORT, dupACK);
+            }else {
+                lastSeqNum = curSeg.SEQNumber;
+                lastLength = curSeg.length;
+                if(!receivedSegments.contains(curSeg)) {
+                    receivedSegments.add(curSeg);
+                }
+                Segment groupACK = new Segment(true, false, curSeg.SEQNumber + curSeg.length, curSeg.ACKNumber, 0, null);
+                net.send(socket, ipAdress, OUTPUT_PORT, groupACK);
+            }
+        }
+    }
+
+    @Override
+    public void run(){
+        try {
+            Random loser = new Random();
+            DatagramSocket socket = new DatagramSocket(INPUT_PORT);
+            TCPOverUDP net = new TCPOverUDP(loser, LOSS);
+
+            if(!handshake(socket, net)) {
+                System.out.println("Handshake establishing failed");
+            }
+
+            ArrayList<Segment> receivedSegments = new ArrayList<>();
+
+            receiveSegments(socket, net, receivedSegments);
 
 
-        ArrayList<Segment> receivedSegments = new ArrayList<>();
-
-        int curACK = -1;
-
-
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

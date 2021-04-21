@@ -14,8 +14,8 @@ public class TCPOverUDP {
     }
 
     public void send(DatagramSocket socket, String hostName, int destPort, Segment segment) throws Exception {
-        if(segment.isACK || loser.nextDouble() < loss) {
-            System.out.println("Sending successfully");
+        if(!segment.isACK || loser.nextDouble() < loss) {
+//            System.out.println("Sending successfully");
             InetAddress address = InetAddress.getByName(hostName);
             ByteArrayOutputStream byteOS = new ByteArrayOutputStream(1337);
             ObjectOutputStream objOS = new ObjectOutputStream(new BufferedOutputStream(byteOS));
@@ -25,12 +25,10 @@ public class TCPOverUDP {
             DatagramPacket dataPacket = new DatagramPacket(sendBuffer, sendBuffer.length, address, destPort);
             socket.send(dataPacket);
             objOS.close();
-            return;
         }
-        System.out.println("Loss triggered, package has not being sent");
     }
 
-    public Segment recieve(DatagramSocket socket) throws Exception {
+    public Segment receive(DatagramSocket socket) throws Exception {
         byte[] receiveBuffer = new byte[1337];
         DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
         try {
