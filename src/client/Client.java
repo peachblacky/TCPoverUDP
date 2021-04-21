@@ -5,19 +5,15 @@ import server.TCPOverUDP;
 
 import java.net.DatagramSocket;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 public class Client extends Thread{
     private final static double LOSS = 1.0;
     private final static int INPUT_PORT = 1337;
     private final static int OUTPUT_PORT = 1488;
-    private final static int TIMEOUT = 15;
     private final static String ipAdress = "localhost";
-    private int clientSEQNUM;
 
-    private boolean handshake(DatagramSocket Socket, TCPOverUDP net, int curAck) throws Exception {
+    private boolean handshake(DatagramSocket Socket, TCPOverUDP net) throws Exception {
         Segment firstSYN = new Segment(false, true, 0, 0, 0, null);
         net.send(Socket, ipAdress, OUTPUT_PORT, firstSYN);
 
@@ -67,9 +63,7 @@ public class Client extends Thread{
             DatagramSocket socket = new DatagramSocket(INPUT_PORT);
             TCPOverUDP net = new TCPOverUDP(loser, LOSS);
 
-
-            int curACK = -1;
-            if(!handshake(socket, net, curACK)) {
+            if(!handshake(socket, net)) {
                 System.out.println("Handshake establishing failed");
             }
 
