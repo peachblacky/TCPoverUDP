@@ -5,7 +5,9 @@ import server.TCPOverUDP;
 
 import java.net.DatagramSocket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 public class Client extends Thread{
     private final static double LOSS = 1.0;
@@ -23,7 +25,6 @@ public class Client extends Thread{
         if(!answerSYNACK.isACK || !answerSYNACK.isSYN) {
             return false;
         }
-        curAck = answerSYNACK.ACKNumber;
         Segment secondACK = new Segment(true, false, 1, 1, 0, null);
         net.send(Socket, ipAdress, OUTPUT_PORT, secondACK);
 
@@ -32,19 +33,30 @@ public class Client extends Thread{
     }
 
     private void receiveSegments(DatagramSocket socket, TCPOverUDP net, ArrayList<Segment> receivedSegments) throws Exception {
-        int ackCounter = 0;
+//        int ackCounter = 0;
         int lastSeqNum = 0;
+        int lastLength = 0;
         while(true) {
             Segment curSeg = net.receive(socket);
-            if(curSeg.SEQNumber > lastSeqNum + curSeg.length) {
-                System.out.println("Some packets were lost during the sending! Sending the duplicated ACK");
-                Segment dupACK = new Segment(true, false, lastSeqNum + curSeg.length, curSeg.ACKNumber, 0, null);
-                net.send(socket, ipAdress, OUTPUT_PORT, dupACK);
-            }else if(++ackCounter == 5){
-                Segment groupACK = new Segment(true, false, curSeg.SEQNumber + curSeg.length, curSeg.ACKNumber, 0, null);
-                ackCounter = 0;
+            if(curSeg.isACK && curSeg.isSYN) {
+                System.out.println("Client received final segment");
+                return;
             }
-            lastSeqNum += curSeg.length;
+            if(curSeg.SEQNumber > lastSeqNum + lastLength && lastSeqNum != 0) {
+//                System.out.println("Awaited seq was " + (lastSeqNum + lastLength) + " but the received is " + curSeg.SEQNumber);
+//                System.out.println("Some packets were lost during the sending! Sending the duplicated ACK");
+
+                Segment dupACK = new Segment(true, false, lastSeqNum + lastLength, curSeg.ACKNumber, 0, null);
+                net.send(socket, ipAdress, OUTPUT_PORT, dupACK);
+            }else {
+                lastSeqNum = curSeg.SEQNumber;
+                lastLength = curSeg.length;
+                if(!receivedSegments.contains(curSeg)) {
+                    receivedSegments.add(curSeg);
+                }
+                Segment groupACK = new Segment(true, false, curSeg.SEQNumber + curSeg.length, curSeg.ACKNumber, 0, null);
+                net.send(socket, ipAdress, OUTPUT_PORT, groupACK);
+            }
         }
     }
 
@@ -64,6 +76,7 @@ public class Client extends Thread{
             ArrayList<Segment> receivedSegments = new ArrayList<>();
 
             receiveSegments(socket, net, receivedSegments);
+
 
         } catch (Exception e) {
             e.printStackTrace();

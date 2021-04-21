@@ -19,6 +19,10 @@ public class Segment implements Serializable {
         this.data = data;
     }
 
+    public byte[] getData() {
+        return data;
+    }
+
 //    public String getDecsString() {
 //        return "Segment {isACK=" + isACK + ", isSYN=" + isSYN + ", ACKNumber=" + ACKNumber + ", SEQNumber="
 //                + SEQNumber + ", length=" + length + "}";
